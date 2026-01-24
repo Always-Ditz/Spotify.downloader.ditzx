@@ -10,21 +10,44 @@ export default async function handler(req, res) {
             url: url
         }, {
             headers: {
-                origin: 'https://spotdown.org',
-                referer: 'https://spotdown.org/',
-                'user-agent': 'Mozilla/5.0 (Linux; Android 15; SM-F958 Build/AP3A.240905.015) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.86 Mobile Safari/537.36'
+                'origin': 'https://spotdown.org',
+                'referer': 'https://spotdown.org/',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             },
-            responseType: 'stream'
+            responseType: 'stream',
+            // Tambahkan timeout internal axios agar tidak menggantung selamanya
+            timeout: 25000 
         });
 
         const cleanTitle = (title || 'spotify-music').replace(/[^a-zA-Z0-9 ]/g, "");
 
+        // Set Headers
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.mp3"`);
 
+        // Pipe data
         response.data.pipe(res);
 
+        // Pastikan fungsi berakhir dengan benar saat streaming selesai
+        response.data.on('end', () => {
+            res.end();
+        });
+
+        // Tangani jika stream putus di tengah jalan
+        response.data.on('error', (err) => {
+            console.error('Stream Error:', err);
+            if (!res.headersSent) {
+                res.status(500).send("Stream error occurred");
+            } else {
+                res.end();
+            }
+        });
+
     } catch (error) {
-        res.status(500).send("Error downloading file: " + error.message);
+        // Jika error terjadi SEBELUM stream mulai (misal API down)
+        console.error("Download Error:", error.message);
+        if (!res.headersSent) {
+            res.status(500).send("Error downloading file: " + error.message);
+        }
     }
-                                                              }
+            }
