@@ -32,19 +32,27 @@ export default async function handler(req, res) {
         const cleanTitle = (title || 'spotify-music')
             .replace(/[^a-zA-Z0-9 \-_]/g, '')
             .trim()
-            .substring(0, 100); // Limit panjang filename
+            .substring(0, 100);
+
+        // Get file size dari Content-Length header
+        const fileSize = response.headers['content-length'];
 
         // Set response headers
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.mp3"`);
         res.setHeader('Cache-Control', 'no-cache');
+        
+        // IMPORTANT: Forward Content-Length ke client
+        if (fileSize) {
+            res.setHeader('Content-Length', fileSize);
+        }
 
         // Pipe stream langsung ke response
         response.data.pipe(res);
 
         // Handle stream completion
         response.data.on('end', () => {
-            console.log('Download completed:', cleanTitle);
+            console.log('Download completed:', cleanTitle, fileSize ? `(${fileSize} bytes)` : '');
             if (!res.writableEnded) {
                 res.end();
             }
@@ -74,7 +82,6 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("Download Error:", error.message);
         
-        // Error handling sebelum stream dimulai
         if (!res.headersSent) {
             const statusCode = error.response?.status || 500;
             res.status(statusCode).json({ 
@@ -83,8 +90,7 @@ export default async function handler(req, res) {
                 apiError: error.response?.data || null
             });
         } else {
-            // Kalau headers sudah terkirim, paksa end
             res.end();
         }
     }
-                         }
+}
