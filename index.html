@@ -6,33 +6,207 @@
     <title>Spotify Downloader Premium</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* STYLE TETAP SAMA SEPERTI ASLINYA */
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #0d0d0d; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; overflow: hidden; }
-        .bg-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-image: linear-gradient(to right, rgba(255, 255, 255, 0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 1px, transparent 1px); background-size: 40px 40px; opacity: 0; animation: fadeInGrid 2s ease-out forwards; }
-        .bg-grid::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, transparent 10%, #0d0d0d 100%); }
-        .card { width: 100%; max-width: 440px; background: rgba(20, 20, 20, 0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 32px; padding: 60px 40px; text-align: center; box-shadow: 0 40px 100px rgba(0,0,0,0.7); opacity: 0; transform: translateY(40px); animation: cardEntrance 1s cubic-bezier(0.22, 1, 0.36, 1) forwards; animation-delay: 0.3s; }
-        .spotify-svg { width: 90px; height: 90px; fill: white; margin-bottom: 30px; animation: floatIcon 4s ease-in-out infinite; filter: drop-shadow(0 0 15px rgba(29, 185, 84, 0.4)); }
-        h1 { font-size: 2.4rem; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 12px; }
-        h1 span { color: #1DB954; }
-        .subtitle { color: #8e8e93; font-size: 1rem; margin-bottom: 45px; font-weight: 400; }
-        .input-group { position: relative; margin-bottom: 25px; }
-        .input-group i { position: absolute; left: 22px; top: 50%; transform: translateY(-50%); color: #636366; transition: color 0.3s ease; font-size: 1.1rem; }
-        input { width: 100%; padding: 20px 20px 20px 60px; background: rgba(44, 44, 46, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; color: white; font-size: 1rem; outline: none; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        input:focus { background: rgba(58, 58, 60, 0.6); border-color: #1DB954; box-shadow: 0 0 25px rgba(29, 185, 84, 0.2); }
-        input:focus + i { color: #1DB954; }
-        .btn-dl { width: 100%; padding: 20px; background-color: #1DB954; color: black; font-weight: 800; font-size: 1.1rem; border: none; border-radius: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 12px 24px rgba(29, 185, 84, 0.25); margin-top: 10px;}
-        .btn-dl:hover { background-color: #1ed760; transform: translateY(-4px); box-shadow: 0 20px 40px rgba(29, 185, 84, 0.4); }
-        .btn-dl:active { transform: translateY(-1px); }
-        .status { margin-top: 35px; display: none; align-items: center; justify-content: center; gap: 14px; color: #1DB954; font-weight: 700; animation: fadeIn 0.5s ease; }
-        .spin { animation: rotate 1.2s linear infinite; font-size: 22px; }
-        @keyframes floatIcon { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-20px) scale(1.08); } }
-        @keyframes cardEntrance { to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeInGrid { to { opacity: 1; } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes rotate { to { transform: rotate(360deg); } }
-        .shake { animation: shake 0.4s ease-in-out; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+        }
+        
+        body { 
+            background-color: #0d0d0d; 
+            color: white; 
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 20px; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        
+        .bg-grid { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: -1; 
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.15) 1px, transparent 1px), 
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 1px, transparent 1px); 
+            background-size: 40px 40px; 
+            opacity: 0; 
+            animation: fadeInGrid 2s ease-out forwards; 
+        }
+        
+        .bg-grid::after { 
+            content: ''; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: radial-gradient(circle at center, transparent 10%, #0d0d0d 100%); 
+        }
+        
+        .card { 
+            width: 100%; 
+            max-width: 440px; 
+            background: rgba(20, 20, 20, 0.6); 
+            backdrop-filter: blur(25px); 
+            -webkit-backdrop-filter: blur(25px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 32px; 
+            padding: 60px 40px; 
+            text-align: center; 
+            box-shadow: 0 40px 100px rgba(0,0,0,0.7); 
+            opacity: 0; 
+            transform: translateY(40px); 
+            animation: cardEntrance 1s cubic-bezier(0.22, 1, 0.36, 1) forwards; 
+            animation-delay: 0.3s; 
+        }
+        
+        .spotify-svg { 
+            width: 90px; 
+            height: 90px; 
+            fill: white; 
+            margin-bottom: 30px; 
+            animation: floatIcon 4s ease-in-out infinite; 
+            filter: drop-shadow(0 0 15px rgba(29, 185, 84, 0.4)); 
+        }
+        
+        h1 { 
+            font-size: 2.4rem; 
+            font-weight: 900; 
+            letter-spacing: -1.5px; 
+            margin-bottom: 12px; 
+        }
+        
+        h1 span { 
+            color: #1DB954; 
+        }
+        
+        .subtitle { 
+            color: #8e8e93; 
+            font-size: 1rem; 
+            margin-bottom: 45px; 
+            font-weight: 400; 
+        }
+        
+        .input-group { 
+            position: relative; 
+            margin-bottom: 25px; 
+        }
+        
+        .input-group i { 
+            position: absolute; 
+            left: 22px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            color: #636366; 
+            transition: color 0.3s ease; 
+            font-size: 1.1rem; 
+        }
+        
+        input { 
+            width: 100%; 
+            padding: 20px 20px 20px 60px; 
+            background: rgba(44, 44, 46, 0.4); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            border-radius: 18px; 
+            color: white; 
+            font-size: 1rem; 
+            outline: none; 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        
+        input:focus { 
+            background: rgba(58, 58, 60, 0.6); 
+            border-color: #1DB954; 
+            box-shadow: 0 0 25px rgba(29, 185, 84, 0.2); 
+        }
+        
+        input:focus + i { 
+            color: #1DB954; 
+        }
+        
+        .btn-dl { 
+            width: 100%; 
+            padding: 20px; 
+            background-color: #1DB954; 
+            color: black; 
+            font-weight: 800; 
+            font-size: 1.1rem; 
+            border: none; 
+            border-radius: 18px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 12px; 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            box-shadow: 0 12px 24px rgba(29, 185, 84, 0.25); 
+            margin-top: 10px;
+        }
+        
+        .btn-dl:hover { 
+            background-color: #1ed760; 
+            transform: translateY(-4px); 
+            box-shadow: 0 20px 40px rgba(29, 185, 84, 0.4); 
+        }
+        
+        .btn-dl:active { 
+            transform: translateY(-1px); 
+        }
+        
+        .status { 
+            margin-top: 35px; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 14px; 
+            color: #1DB954; 
+            font-weight: 700; 
+            animation: fadeIn 0.5s ease; 
+        }
+        
+        .spin { 
+            animation: rotate 1.2s linear infinite; 
+            font-size: 22px; 
+        }
+        
+        @keyframes floatIcon { 
+            0%, 100% { transform: translateY(0) scale(1); } 
+            50% { transform: translateY(-20px) scale(1.08); } 
+        }
+        
+        @keyframes cardEntrance { 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        @keyframes fadeInGrid { 
+            to { opacity: 1; } 
+        }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; } 
+            to { opacity: 1; } 
+        }
+        
+        @keyframes rotate { 
+            to { transform: rotate(360deg); } 
+        }
+        
+        .shake { 
+            animation: shake 0.4s ease-in-out; 
+        }
+        
+        @keyframes shake { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-8px); } 
+            75% { transform: translateX(8px); } 
+        }
 
         #result-area {
             display: none;
@@ -41,6 +215,7 @@
             animation: fadeIn 0.5s ease;
             margin-bottom: 20px;
         }
+        
         .album-cover {
             width: 150px;
             height: 150px;
@@ -50,19 +225,23 @@
             object-fit: cover;
             border: 2px solid rgba(255,255,255,0.1);
         }
+        
         .track-info {
             margin-bottom: 20px;
         }
+        
         .track-title {
             font-size: 1.2rem;
             font-weight: 700;
             margin-bottom: 5px;
             color: white;
         }
+        
         .track-artist {
             font-size: 0.9rem;
             color: #b3b3b3;
         }
+        
         .meta-badge {
             display: inline-block;
             background: rgba(255,255,255,0.1);
@@ -72,6 +251,7 @@
             color: #1DB954;
             margin-top: 8px;
         }
+        
         .reset-btn {
             background: transparent;
             border: none;
@@ -81,11 +261,13 @@
             font-size: 0.9rem;
             text-decoration: underline;
         }
-        .reset-btn:hover { color: white; }
+        
+        .reset-btn:hover { 
+            color: white; 
+        }
     </style>
 </head>
 <body>
-
     <div class="bg-grid"></div>
 
     <div class="card">
@@ -131,9 +313,13 @@
     </div>
 
     <script>
+        // Global variables untuk menyimpan data track
         let currentSpotifyUrl = '';
         let currentTitle = '';
 
+        /**
+         * Fungsi untuk fetch metadata lagu dari Spotify
+         */
         async function fetchMetadata() {
             const input = document.getElementById('url');
             const loader = document.getElementById('loader');
@@ -142,6 +328,7 @@
             const subtitle = document.getElementById('main-subtitle');
             const loaderText = document.getElementById('loader-text');
 
+            // Validasi input URL
             if (!input.value || !input.value.includes('spotify')) {
                 input.parentElement.classList.add('shake');
                 input.style.borderColor = '#ef4444';
@@ -152,53 +339,70 @@
                 return;
             }
 
+            // Show loader
             searchArea.style.display = 'none';
             subtitle.style.display = 'none';
             loader.style.display = 'flex';
             loaderText.innerText = "Searching Track...";
 
             try {
+                // Fetch data dari backend API
                 const res = await fetch(`/api/info?url=${encodeURIComponent(input.value)}`);
-                const data = await res.json();
+                const json = await res.json();
 
-                if (!res.ok) throw new Error(data.error || 'Failed');
+                // Handle error response
+                if (!res.ok) {
+                    throw new Error(json.error || 'Failed to fetch track info');
+                }
 
-                document.getElementById('res-cover').src = data.cover;
+                // Parse response - support both formats
+                const data = json.data || json;
+
+                // Populate UI dengan data track
+                document.getElementById('res-cover').src = data.cover || '';
                 document.getElementById('res-title').innerText = data.title || "Unknown Title";
                 document.getElementById('res-artist').innerText = data.artist || "Unknown Artist";
                 document.getElementById('res-duration').innerText = data.duration || "00:00";
                 
-                currentSpotifyUrl = data.spotifyUrl;
-                currentTitle = data.title;
+                // Simpan data untuk download
+                currentSpotifyUrl = data.spotifyUrl || input.value;
+                currentTitle = data.title || 'spotify-music';
 
+                // Show result area
                 loader.style.display = 'none';
                 resultArea.style.display = 'flex';
 
             } catch (error) {
+                console.error('Fetch error:', error);
                 alert('Error: ' + error.message);
                 resetSearch();
             }
         }
 
+        /**
+         * Fungsi untuk download file MP3
+         */
         function downloadFile() {
             const btn = document.getElementById('btn-download');
             const loader = document.getElementById('loader');
             const loaderText = document.getElementById('loader-text');
             
+            // Show processing state
             btn.style.display = 'none';
             loader.style.display = 'flex';
             loaderText.innerText = "Processing MP3...";
 
-            // Perbaikan: Gunakan link download tersembunyi agar halaman tidak refresh/pindah jika error
+            // Generate download URL
             const downloadUrl = `/api/download?url=${encodeURIComponent(currentSpotifyUrl)}&title=${encodeURIComponent(currentTitle)}`;
             
+            // Create hidden download link
             const a = document.createElement('a');
             a.href = downloadUrl;
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
             
-            // Beri jeda 5 detik sebelum mengembalikan tombol, untuk memberi waktu browser memproses download
+            // Reset UI setelah 5 detik
             setTimeout(() => {
                 document.body.removeChild(a);
                 btn.style.display = 'flex';
@@ -206,14 +410,22 @@
             }, 5000);
         }
 
+        /**
+         * Fungsi untuk reset form ke state awal
+         */
         function resetSearch() {
             document.getElementById('search-area').style.display = 'block';
             document.getElementById('main-subtitle').style.display = 'block';
             document.getElementById('result-area').style.display = 'none';
             document.getElementById('loader').style.display = 'none';
             document.getElementById('url').value = '';
+            currentSpotifyUrl = '';
+            currentTitle = '';
         }
 
+        /**
+         * Event listener untuk Enter key pada input
+         */
         document.getElementById('url').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 fetchMetadata();
@@ -222,4 +434,3 @@
     </script>
 </body>
     </html>
-    
