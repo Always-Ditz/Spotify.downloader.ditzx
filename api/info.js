@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 export default async function handler(req, res) {
     // CORS headers
@@ -21,87 +22,73 @@ export default async function handler(req, res) {
     }
 
     try {
-        // --- AUTO-FIX SPOTIFY LINK ---
-        // Extract track ID (22 alphanumeric characters)
-        const spotifyIdRegex = /(track\/|track:)([a-zA-Z0-9]{22})/;
-        const match = url.match(spotifyIdRegex);
-
-        if (match && match[2]) {
-            // Force standard Spotify URL format
-            url = `https://open.spotify.com/track/${match[2]}`;
-            console.log('Fixed URL:', url);
-        } else if (!url.includes('spotify.com')) {
+        // Validate Spotify URL
+        if (!url.includes('open.spotify.com')) {
             return res.status(400).json({ 
                 error: "Format link tidak valid. Gunakan link Spotify yang benar!" 
             });
         }
 
-        // --- FETCH SONG DATA (Primary API) ---
-        let songData;
-        
-        try {
-            const response = await axios.get(
-                `https://spotdown.org/api/song-details?url=${encodeURIComponent(url)}`, 
-                {
-                    headers: {
-                        'origin': 'https://spotdown.org',
-                        'referer': 'https://spotdown.org/',
-                        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-                        'accept': 'application/json'
-                    },
-                    timeout: 15000,
-                    validateStatus: (status) => status < 500
-                }
-            );
+        // --- FETCH CSRF TOKEN FROM SPOTDL.IO ---
+        const spotdlPage = await axios.get('https://spotdl.io/', {
+            headers: {
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
+            timeout: 15000
+        });
 
-            const song = response.data?.songs?.[0];
+        const $ = cheerio.load(spotdlPage.data);
+        const csrfToken = $('meta[name="csrf-token"]').attr('content');
+        const cookies = spotdlPage.headers['set-cookie']?.join('; ') || '';
 
-            if (!song) {
-                throw new Error('Song not found in primary API');
-            }
-
-            songData = {
-                title: song.title,
-                artist: song.artist,
-                duration: song.duration,
-                cover: song.thumbnail,
-                spotifyUrl: song.url || url
-            };
-
-        } catch (primaryError) {
-            console.log('Primary API failed, trying fallback...');
-            
-            // --- FALLBACK API (Alternative) ---
-            try {
-                const fallbackResponse = await axios.get(
-                    `https://api.fabdl.com/spotify/get?url=${encodeURIComponent(url)}`,
-                    {
-                        headers: {
-                            'accept': 'application/json',
-                            'user-agent': 'Mozilla/5.0'
-                        },
-                        timeout: 15000
-                    }
-                );
-
-                const result = fallbackResponse.data?.result;
-
-                if (!result) {
-                    throw new Error('No data from fallback API');
-                }
-
-                songData = {
-                    title: result.name,
-                    artist: result.artists,
-                    duration: Math.floor(result.duration_ms / 1000) + 's',
-                    cover: result.image,
-                    spotifyUrl: url
-                };
-
-            } catch (fallbackError) {
-                throw new Error('Both APIs failed: ' + fallbackError.message);
-            }
+        if (!csrfToken) {
+            throw new Error('Failed to get CSRF token from spotdl.io');
         }
+
+        // --- CREATE API INSTANCE ---
+        const api = axios.create({
+            baseURL: 'https://spotdl.io',
+            headers: {
+                'cookie': cookies,
+                'content-type': 'application/json',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'x-csrf-token': csrfToken
+            },
+            timeout: 20000
+        });
+
+        // --- FETCH TRACK DATA AND DOWNLOAD URL ---
+        const [metaResponse, downloadResponse] = await Promise.all([
+            api.post('/getTrackData', { spotify_url: url }),
+            api.post('/convert', { urls: url })
+        ]);
+
+        const meta = metaResponse.data;
+        const downloadUrl = downloadResponse.data?.url;
+
+        if (!meta?.data) {
+            throw new Error('No track data returned from API');
+        }
+
+        if (!downloadUrl) {
+            throw new Error('No download URL returned from API');
+        }
+
+        // --- FORMAT RESPONSE ---
+        const trackData = meta.data;
+        const artist = trackData.artists?.map(a => a.name).join(', ') || 'Unknown Artist';
+        const coverImage = trackData.album?.images?.[0]?.url || null;
+        const durationSeconds = Math.floor(trackData.duration_ms / 1000);
+
+        const songData = {
+            title: trackData.name,
+            artist: artist,
+            duration: `${durationSeconds}s`,
+            cover: coverImage,
+            spotifyUrl: trackData.external_urls?.spotify || url,
+            downloadUrl: downloadUrl, // URL download untuk dikirim ke download.js
+            spotifyId: trackData.id
+        };
 
         return res.status(200).json({
             success: true,
@@ -122,4 +109,4 @@ export default async function handler(req, res) {
             hint: "Coba lagi dalam beberapa saat atau gunakan link Spotify yang berbeda"
         });
     }
-                            }
+}
