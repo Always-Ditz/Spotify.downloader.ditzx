@@ -6,35 +6,28 @@ export default async function handler(req, res) {
     if (!url) {
         return res.status(400).json({ 
             error: "URL required",
-            example: "/api/download?url=https://open.spotify.com/track/xxx&title=Song Name"
+            example: "/api/download?url=https://master.dlapi.app/download/tracks/xxx&title=Song Name"
         });
     }
 
     try {
-        // Request download stream dari API
-        const response = await axios.post(
-            'https://spotdown.org/api/download', 
-            { url: url },
-            {
-                headers: {
-                    'origin': 'https://spotdown.org',
-                    'referer': 'https://spotdown.org/',
-                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-                    'content-type': 'application/json'
-                },
-                responseType: 'stream',
-                timeout: 25000,
-                maxRedirects: 5
-            }
-        );
+        // Stream file langsung dari URL download
+        const response = await axios.get(url, {
+            headers: {
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
+            responseType: 'stream',
+            timeout: 30000,
+            maxRedirects: 5
+        });
 
-        // Clean filename - hapus karakter illegal
+        // Clean filename
         const cleanTitle = (title || 'spotify-music')
             .replace(/[^a-zA-Z0-9 \-_]/g, '')
             .trim()
             .substring(0, 100);
 
-        // Get file size dari Content-Length header
+        // Get file size
         const fileSize = response.headers['content-length'];
 
         // Set response headers
@@ -42,28 +35,26 @@ export default async function handler(req, res) {
         res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.mp3"`);
         res.setHeader('Cache-Control', 'no-cache');
         
-        // IMPORTANT: Forward Content-Length ke client
         if (fileSize) {
             res.setHeader('Content-Length', fileSize);
         }
 
-        // Pipe stream langsung ke response
+        // Pipe stream ke client
         response.data.pipe(res);
 
-        // Handle stream completion
+        // Handle stream events
         response.data.on('end', () => {
-            console.log('Download completed:', cleanTitle, fileSize ? `(${fileSize} bytes)` : '');
+            console.log('✓ Download completed:', cleanTitle);
             if (!res.writableEnded) {
                 res.end();
             }
         });
 
-        // Handle stream errors
         response.data.on('error', (err) => {
-            console.error('Stream Error:', err.message);
+            console.error('✗ Stream Error:', err.message);
             if (!res.headersSent) {
                 res.status(500).json({ 
-                    error: "Stream error occurred",
+                    error: "Stream error",
                     details: err.message 
                 });
             } else {
@@ -74,23 +65,23 @@ export default async function handler(req, res) {
         // Handle client disconnect
         req.on('close', () => {
             if (!res.writableEnded) {
-                console.log('Client disconnected during download');
+                console.log('Client disconnected');
                 response.data.destroy();
             }
         });
 
     } catch (error) {
-        console.error("Download Error:", error.message);
+        console.error("✗ Download Error:", error.message);
         
         if (!res.headersSent) {
             const statusCode = error.response?.status || 500;
             res.status(statusCode).json({ 
-                error: "Error downloading file",
-                details: error.message,
-                apiError: error.response?.data || null
+                error: "Failed to download file",
+                details: error.message
             });
         } else {
             res.end();
         }
     }
-}
+        }
+                
